@@ -1,0 +1,20 @@
+curl --location 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis' \
+--header 'X-DashScope-Async: enable' \
+--header 'Authorization: Bearer sk-07fd2c458c5e4ce2b95368e102ce7c87' \
+--header 'Content-Type: application/json' \
+--data '{
+    "model": "flux-schnell",
+    "input": {
+        "prompt": "奔跑小猫"
+    },
+    "parameters": {
+        "size": "1024*1024",
+        "seed":42,
+        "steps":4
+    }
+}'
+
+
+curl -X GET \
+--header 'Authorization: Bearer sk-07fd2c458c5e4ce2b95368e102ce7c87' \
+https://dashscope.aliyuncs.com/api/v1/tasks/f2772b64-e455-4da2-899d-388560c88505

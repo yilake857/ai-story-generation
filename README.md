@@ -1,4 +1,4 @@
-# AI故事生成器
+# Flutter Dreams
 
 ## 基本效果：用户给定几个词或与之相关性的话生成一个故事或者歌曲
 
@@ -52,21 +52,4 @@
 - 通用模型的提示词需要尽量完善
 
 # api调用探究
-- 豆包
-curl https://ark.cn-beijing.volces.com/api/v3/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer 20f5c3b8-cfa8-4cfc-b24b-b0678e7175b2" \
-  -d '{
-        "model": "Doubao-vision-pro-32k",
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "你好?"
-                    }
-                ]
-            }
-        ]
-    }'
+- 豆包 大语言模型

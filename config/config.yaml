@@ -1,0 +1,10 @@
+server:
+  host: "127.0.0.1"
+  port: 8010
+
+database:
+  user: "root"
+  password: "examplepassword"
+  host: "localhost"
+  port: 3306
+  dbname: "mydb"

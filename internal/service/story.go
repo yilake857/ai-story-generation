@@ -1,14 +1,13 @@
 package service
 
 import (
-	"encoding/base64"
 	"flutterdreams/config"
 	"flutterdreams/internal/model"
 	utils2 "flutterdreams/pkg/utils"
 	"flutterdreams/pkg/utils/authv3"
 	"fmt"
 	"github.com/google/uuid"
-	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -25,7 +24,7 @@ type StoryRequest struct {
 type StoryResponse struct {
 	StoryContent string `json:"story_content"`
 	ImagePrompt  string `json:"image_prompt"`
-	AudioBase64  string `json:"audio_base64"` //当前直接传到前端 之后再保存下来或者。。。
+	AudioUril    string `json:"audio_url"` //当前直接传到前端 之后再保存下来或者。。。
 }
 
 // 是处理故事请求的服务层
@@ -128,23 +127,15 @@ func generateAudioFromText(req *StoryRequest, resp *StoryResponse) error {
 	result := utils2.DoPost("https://openapi.youdao.com/ttsapi", header, paramsMap, "audio")
 
 	// 获取保存的文件路径
-	path := getTempFilePath()
+	fileName, filePath := getTempFilePath()
 
 	// 如果音频生成成功
 	if result != nil {
 		// 保存音频文件
-		utils2.SaveFile(path, result, false)
-		print("save file path: " + path)
-
-		//// 将音频文件编码为 Base64
-		//encodedAudio, err := encodeFileToBase64(path)
-		//if err != nil {
-		//	// 错误时返回错误信息
-		//	return fmt.Errorf("Error encoding file to base64: %v", err)
-		//}
-		//
-		//// 将 Base64 编码后的音频数据赋值给响应对象
-		//resp.AudioBase64 = encodedAudio
+		utils2.SaveFile(filePath, result, false)
+		fmt.Printf("save file path: " + filePath)
+		address := fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port)
+		resp.AudioUril = "http://" + address + "/getAudio?filename=" + fileName
 		return nil
 	}
 
@@ -153,34 +144,24 @@ func generateAudioFromText(req *StoryRequest, resp *StoryResponse) error {
 }
 
 // 获取保存临时文件的路径
-func getTempFilePath() string {
+func getTempFilePath() (string, string) {
 	// 获取当前工作目录
 	workingDir, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error getting current working directory:", err)
-		return ""
+		return "", ""
 	}
-	workingDir = filepath.Dir(filepath.Dir(workingDir))
+	log.Printf("working dir: %s", workingDir)
 	tempDir := filepath.Join(workingDir, "temp")
+	log.Printf("temp dir: %s", tempDir)
 	err = os.MkdirAll(tempDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error creating temporary directory:", err)
-		return ""
+		return "", ""
 	}
+	// 生成唯一的文件名
 	fileName := uuid.New().String() + ".mp3"
+	// 拼接文件的完整路径
 	filePath := filepath.Join(tempDir, fileName)
-	return filePath
-}
-
-// 将音频文件编码为 Base64 字符串
-func encodeFileToBase64(filePath string) (string, error) {
-	// 读取音频文件
-	fileData, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return "", err
-	}
-
-	// 将文件数据转换为 Base64 编码
-	encoded := base64.StdEncoding.EncodeToString(fileData)
-	return encoded, nil
+	return fileName, filePath
 }

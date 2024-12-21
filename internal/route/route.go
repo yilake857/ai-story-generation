@@ -63,7 +63,7 @@ func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"message":      "Story request received successfully",
 		"story":        storyResp.StoryContent, // 返回故事内容
 		"image_prompt": storyResp.ImagePrompt,  // 如果有图片提示
-		"audio_base64": storyResp.AudioBase64,  // 如果有音频内容
+		"audio_url":    storyResp.AudioUril,    // 如果有音频内容
 	}
 
 	// 将响应转换为 JSON 格式并返回

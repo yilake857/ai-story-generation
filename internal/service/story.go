@@ -160,7 +160,8 @@ func getTempFilePath() string {
 		fmt.Println("Error getting current working directory:", err)
 		return ""
 	}
-	tempDir := filepath.Join(workingDir, "temporary")
+	workingDir = filepath.Dir(filepath.Dir(workingDir))
+	tempDir := filepath.Join(workingDir, "temp")
 	err = os.MkdirAll(tempDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error creating temporary directory:", err)

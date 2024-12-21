@@ -65,7 +65,7 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 
 	// 生成故事内容的提示词
 	storyPrompt := fmt.Sprintf(
-		"根据以下内容生成一个500字左右且有趣的儿童故事。\n故事主题：%s\n故事类型：%s\n适合年龄段：%s\n",
+		"根据以下内容生成一个有趣的儿童故事,回复文字的UTF-8编码长度不能超过2048!\n故事的主题：%s\n故事的类型：%s\n儿童的年龄段：%s\n",
 		req.StoryContent,
 		req.StoryType,
 		req.ChildAgeGroup,
@@ -136,15 +136,15 @@ func generateAudioFromText(req *StoryRequest, resp *StoryResponse) error {
 		utils2.SaveFile(path, result, false)
 		print("save file path: " + path)
 
-		// 将音频文件编码为 Base64
-		encodedAudio, err := encodeFileToBase64(path)
-		if err != nil {
-			// 错误时返回错误信息
-			return fmt.Errorf("Error encoding file to base64: %v", err)
-		}
-
-		// 将 Base64 编码后的音频数据赋值给响应对象
-		resp.AudioBase64 = encodedAudio
+		//// 将音频文件编码为 Base64
+		//encodedAudio, err := encodeFileToBase64(path)
+		//if err != nil {
+		//	// 错误时返回错误信息
+		//	return fmt.Errorf("Error encoding file to base64: %v", err)
+		//}
+		//
+		//// 将 Base64 编码后的音频数据赋值给响应对象
+		//resp.AudioBase64 = encodedAudio
 		return nil
 	}
 

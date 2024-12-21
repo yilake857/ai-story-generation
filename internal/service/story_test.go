@@ -37,7 +37,7 @@ func TestGenerateStory_ValidRequest(t *testing.T) {
 
 	// 创建请求
 	req := &StoryRequest{
-		StoryContent:    "小鸟在天空飞",
+		StoryContent:    "爱探险的朵拉",
 		StoryType:       "冒险",
 		ChildAgeGroup:   "3-5岁",
 		ImageType:       "卡通风格",

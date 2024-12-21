@@ -5,6 +5,9 @@ import (
 	"flutterdreams/internal/service"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // 定义结构体来接收请求的参数
@@ -26,10 +29,11 @@ func InitRouter() *httprouter.Router {
 	// 设置 GET 路由用于心跳检查
 	router.GET("/health", HealthCheck)
 
+	//获取音频文件
+	router.GET("/getAudio", GetAudio)
 	return router
 }
 
-// 处理 POST 请求的函数
 func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 创建一个 StoryRequest 实例来存储请求体中的数据
 	var storyReq service.StoryRequest
@@ -75,4 +79,41 @@ func HealthCheck(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	wr.Header().Set("Content-Type", "application/json")
 	wr.WriteHeader(http.StatusOK)
 	json.NewEncoder(wr).Encode(map[string]string{"status": "healthy"})
+}
+
+func GetAudio(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// 获取请求中的文件名参数
+	fileName := r.URL.Query().Get("filename")
+	if fileName == "" {
+		http.Error(wr, "Missing filename parameter", http.StatusBadRequest)
+		return
+	}
+
+	// 获取音频文件路径
+	audioFilePath := getAudioFilePath(fileName)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(audioFilePath); os.IsNotExist(err) {
+		http.Error(wr, "File not found", http.StatusNotFound)
+		return
+	}
+
+	// 设置响应头以告知浏览器音频文件类型
+	wr.Header().Set("Content-Type", "audio/mpeg")
+
+	// 设置响应头以指定音频文件下载
+	wr.Header().Set("Content-Disposition", "inline; filename=\""+fileName+"\"")
+
+	// 读取并返回文件内容
+	http.ServeFile(wr, r, audioFilePath)
+}
+
+// 获取音频文件的路径，根据文件名来确定
+func getAudioFilePath(fileName string) string {
+	// 假设音频文件存储在项目根目录下的 "audio" 目录
+	// 且文件名必须以 ".mp3" 后缀结尾
+	if !strings.HasSuffix(fileName, ".mp3") {
+		fileName += ".mp3" // 默认添加 .mp3 后缀
+	}
+	return filepath.Join("temp", fileName)
 }

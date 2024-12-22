@@ -54,5 +54,5 @@ func TestGenerateStory_ValidRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("错误：%v", err)
 	}
-	fmt.Println(resp.StoryContent + resp.ImagePrompt + resp.AudioUril)
+	fmt.Println(resp.StoryContent + resp.ImagePrompt + resp.AudioUrl)
 }

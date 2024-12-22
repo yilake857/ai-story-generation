@@ -24,7 +24,8 @@ type StoryRequest struct {
 type StoryResponse struct {
 	StoryContent string `json:"story_content"`
 	ImagePrompt  string `json:"image_prompt"`
-	AudioUril    string `json:"audio_url"` //当前直接传到前端 之后再保存下来或者。。。
+	AudioUrl     string `json:"audio_url"`
+	ImageUrl     string `json:"image_url"`
 }
 
 // 是处理故事请求的服务层
@@ -41,6 +42,7 @@ func (s *StoryService) ProcessStoryRequest(req *StoryRequest, resp *StoryRespons
 	err := s.GenerateStory(req, resp)
 	if err != nil {
 		// 返回空字符串和错误
+		log.Fatalf("failed to generate story: %w", err)
 		return fmt.Errorf("failed to generate story: %w", err)
 	}
 
@@ -48,6 +50,7 @@ func (s *StoryService) ProcessStoryRequest(req *StoryRequest, resp *StoryRespons
 	err = generateAudioFromText(req, resp)
 	if err != nil {
 		// 返回空字符串和错误
+		log.Fatalf("failed to generate audio: %w", err)
 		return fmt.Errorf("failed to generate audio: %w", err)
 	}
 
@@ -59,6 +62,7 @@ func (s *StoryService) ProcessStoryRequest(req *StoryRequest, resp *StoryRespons
 func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) error {
 	// 检查输入是否有效
 	if req.StoryContent == "" || req.StoryType == "" || req.ChildAgeGroup == "" || req.ImageType == "" {
+		log.Fatalf("请求参数无效，请提供故事内容、故事类型和儿童年龄组")
 		return fmt.Errorf("请求参数无效，请提供故事内容、故事类型和儿童年龄组")
 	}
 
@@ -69,6 +73,7 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 		req.StoryType,
 		req.ChildAgeGroup,
 	)
+	log.Printf("storyPrompt:%s", storyPrompt)
 	fmt.Printf("%s", storyPrompt)
 	// 调用模型生成故事内容
 	storyContent, err := model.GenerateStory(
@@ -76,8 +81,10 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 		storyPrompt,
 	)
 	if err != nil {
+		log.Fatalf("生成故事内容时发生错误: %v", err)
 		return fmt.Errorf("生成故事内容时发生错误: %v", err)
 	}
+	log.Printf("storyContent:%s", storyContent)
 	resp.StoryContent = storyContent
 
 	// 生成图片提示词的提示词
@@ -86,18 +93,17 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 		req.ImageType,
 		storyContent,
 	)
-
 	// 调用模型生成图片提示词
 	imagePrompt, err := model.GenerateStory(
 		"你是一名儿童故事专家，请根据以下提示生成一个适合图片生成的提示词。",
 		imagePromptInput,
 	)
 	if err != nil {
+		log.Fatalf("生成图片提示词时发生错误: %v", err)
 		return fmt.Errorf("生成图片提示词时发生错误: %v", err)
 	}
+	log.Printf("imagePrompt:%s", imagePrompt)
 	resp.ImagePrompt = imagePrompt
-
-	// 返回生成的故事和图片提示词
 	return nil
 }
 
@@ -133,13 +139,16 @@ func generateAudioFromText(req *StoryRequest, resp *StoryResponse) error {
 	if result != nil {
 		// 保存音频文件
 		utils2.SaveFile(filePath, result, false)
-		fmt.Printf("save file path: " + filePath)
+		//fmt.Printf("save file path: " + filePath)
+		log.Printf("save file path: " + filePath)
 		address := fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port)
-		resp.AudioUril = "http://" + address + "/getAudio?filename=" + fileName
+		resp.AudioUrl = "http://" + address + "/getAudio?filename=" + fileName
+		log.Printf("audio uril: %s", resp.AudioUrl)
 		return nil
 	}
 
 	// 如果没有返回结果，返回错误
+	log.Fatal("failed to generate audio")
 	return fmt.Errorf("failed to generate audio")
 }
 
@@ -151,9 +160,7 @@ func getTempFilePath() (string, string) {
 		fmt.Println("Error getting current working directory:", err)
 		return "", ""
 	}
-	log.Printf("working dir: %s", workingDir)
-	tempDir := filepath.Join(workingDir, "temp")
-	log.Printf("temp dir: %s", tempDir)
+	tempDir := filepath.Join(workingDir, "audio")
 	err = os.MkdirAll(tempDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error creating temporary directory:", err)

@@ -10,15 +10,6 @@ import (
 	"strings"
 )
 
-// 定义结构体来接收请求的参数
-type StoryRequest struct {
-	StoryContent    string `json:"story_content"`
-	CharacterChoice string `json:"character_choice"`
-	StoryType       string `json:"story_type"`
-	ImageType       string `json:"image_type"`
-	ChildAgeGroup   string `json:"child_age_group"`
-}
-
 // 初始化路由
 func InitRouter() *httprouter.Router {
 	router := httprouter.New()
@@ -63,7 +54,7 @@ func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"message":      "Story request received successfully",
 		"story":        storyResp.StoryContent, // 返回故事内容
 		"image_prompt": storyResp.ImagePrompt,  // 如果有图片提示
-		"audio_url":    storyResp.AudioUril,    // 如果有音频内容
+		"audio_url":    storyResp.AudioUrl,     // 如果有音频内容
 	}
 
 	// 将响应转换为 JSON 格式并返回
@@ -115,5 +106,5 @@ func getAudioFilePath(fileName string) string {
 	if !strings.HasSuffix(fileName, ".mp3") {
 		fileName += ".mp3" // 默认添加 .mp3 后缀
 	}
-	return filepath.Join("temp", fileName)
+	return filepath.Join("audio", fileName)
 }

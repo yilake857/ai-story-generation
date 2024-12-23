@@ -3,13 +3,8 @@ package service
 import (
 	"flutterdreams/config"
 	"flutterdreams/internal/model"
-	utils2 "flutterdreams/pkg/utils"
-	"flutterdreams/pkg/utils/authv3"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 // 用于接收客户端发送的 JSON 数据
@@ -38,50 +33,49 @@ func NewStoryService() *StoryService {
 
 // 用于处理故事请求的业务逻辑 逻辑线路
 func (s *StoryService) ProcessStoryRequest(req *StoryRequest, resp *StoryResponse) error {
-	//1. story_content + story_type + child_age_group 生成提示词，返回故事结果
+	// 1. story_content + story_type + child_age_group 生成提示词，返回故事结果
 	err := s.GenerateStory(req, resp)
 	if err != nil {
-		// 返回空字符串和错误
-		log.Fatalf("failed to generate story: %w", err)
-		return fmt.Errorf("failed to generate story: %w", err)
+		log.Printf("生成故事时发生错误: %v", err) // 记录错误，但不停止执行
 	}
 
-	//2. 根据故事结果 + character_choice 返回音频文件
+	// 2. 根据故事结果 + character_choice 返回音频文件
 	err = generateAudioFromText(req, resp)
 	if err != nil {
-		// 返回空字符串和错误
-		log.Fatalf("failed to generate audio: %w", err)
-		return fmt.Errorf("failed to generate audio: %w", err)
+		log.Printf("生成音频时发生错误: %v", err) // 记录错误，但不停止执行
 	}
 
-	//3. 根据图片提示词 + image_type 返回图片文件
-	return err
+	// 3. 根据图片提示词 + image_type 返回图片文件
+	err = generateImageFromText(req, resp)
+	if err != nil {
+		log.Printf("生成图片时发生错误: %v", err) // 记录错误，但不停止执行
+	}
+
+	return nil // 不返回错误，确保处理继续进行
 }
 
 // 1. story_content + story_type + child_age_group 生成提示词，返回故事结果
 func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) error {
 	// 检查输入是否有效
 	if req.StoryContent == "" || req.StoryType == "" || req.ChildAgeGroup == "" || req.ImageType == "" {
-		log.Fatalf("请求参数无效，请提供故事内容、故事类型和儿童年龄组")
 		return fmt.Errorf("请求参数无效，请提供故事内容、故事类型和儿童年龄组")
 	}
 
 	// 生成故事内容的提示词
 	storyPrompt := fmt.Sprintf(
-		"根据以下内容生成一个有趣的儿童故事,回复文字的UTF-8编码长度不能超过2048!\n故事的主题：%s\n故事的类型：%s\n儿童的年龄段：%s\n",
+		"根据以下内容生成一个有趣的儿童故事,回复文字的UTF-8编码长度不能超过2000且文字和符号总共不能超过600!\n故事的主题：%s\n故事的类型：%s\n儿童的年龄段：%s\n",
 		req.StoryContent,
 		req.StoryType,
 		req.ChildAgeGroup,
 	)
 	log.Printf("storyPrompt:%s", storyPrompt)
-	fmt.Printf("%s", storyPrompt)
 	// 调用模型生成故事内容
 	storyContent, err := model.GenerateStory(
 		"你是一名儿童故事专家，请根据以下提示生成一个有趣的故事。",
 		storyPrompt,
 	)
 	if err != nil {
-		log.Fatalf("生成故事内容时发生错误: %v", err)
+		log.Printf("生成故事内容时发生错误: %v", err)
 		return fmt.Errorf("生成故事内容时发生错误: %v", err)
 	}
 	log.Printf("storyContent:%s", storyContent)
@@ -99,7 +93,7 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 		imagePromptInput,
 	)
 	if err != nil {
-		log.Fatalf("生成图片提示词时发生错误: %v", err)
+		log.Printf("生成图片提示词时发生错误: %v", err)
 		return fmt.Errorf("生成图片提示词时发生错误: %v", err)
 	}
 	log.Printf("imagePrompt:%s", imagePrompt)
@@ -110,65 +104,42 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 // 2. 根据故事结果 + character_choice 返回音频文件
 func generateAudioFromText(req *StoryRequest, resp *StoryResponse) error {
 	// 检查输入是否有效
-	if req.StoryContent == "" || req.CharacterChoice == "" {
+	if resp.StoryContent == "" || req.CharacterChoice == "" {
 		return fmt.Errorf("请求参数无效，请提供故事内容、音频角色信息")
 	}
 
-	// 创建请求参数
-	paramsMap := map[string][]string{
-		"q":         {resp.StoryContent},   // 传入的文本
-		"voiceName": {req.CharacterChoice}, // 语音名称
-		"format":    {"mp3"},               // 输出格式
+	if len(resp.StoryContent) > 2048 {
+		resp.StoryContent = resp.StoryContent[:2048] // 截断到前 2048 个字符
+		log.Printf("StoryContent exceeded 2048 characters, truncated to: %s", resp.StoryContent)
 	}
 
-	// 设置请求头
-	header := map[string][]string{
-		"Content-Type": {"application/x-www-form-urlencoded"},
+	// 调用生成音频的函数
+	fileName, err := model.GenerateAudioFromText(resp.StoryContent, req.CharacterChoice)
+	if err != nil {
+		log.Printf("Failed to generate audio: %v", err)
+		return err
 	}
 
-	// 添加鉴权参数
-	authv3.AddAuthParams(config.GetConfig().YoudaoTTS.AppKey, config.GetConfig().YoudaoTTS.AppSecret, paramsMap)
+	// 构建音频文件的访问 URL
+	address := fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port)
+	resp.AudioUrl = "http://" + address + "/getAudio?filename=" + fileName
+	log.Printf("Audio URL: %s", resp.AudioUrl)
 
-	// 请求api服务并获取生成的音频文件数据
-	result := utils2.DoPost("https://openapi.youdao.com/ttsapi", header, paramsMap, "audio")
-
-	// 获取保存的文件路径
-	fileName, filePath := getTempFilePath()
-
-	// 如果音频生成成功
-	if result != nil {
-		// 保存音频文件
-		utils2.SaveFile(filePath, result, false)
-		//fmt.Printf("save file path: " + filePath)
-		log.Printf("save file path: " + filePath)
-		address := fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port)
-		resp.AudioUrl = "http://" + address + "/getAudio?filename=" + fileName
-		log.Printf("audio uril: %s", resp.AudioUrl)
-		return nil
-	}
-
-	// 如果没有返回结果，返回错误
-	log.Fatal("failed to generate audio")
-	return fmt.Errorf("failed to generate audio")
+	return nil
 }
 
-// 获取保存临时文件的路径
-func getTempFilePath() (string, string) {
-	// 获取当前工作目录
-	workingDir, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Error getting current working directory:", err)
-		return "", ""
+// 3. 根据图片提示词 + image_type 返回图片文件
+func generateImageFromText(req *StoryRequest, resp *StoryResponse) error {
+	if resp.ImagePrompt == "" {
+		err := fmt.Errorf("ImagePrompt is empty")
+		log.Printf("Error: %v", err)
+		return err
 	}
-	tempDir := filepath.Join(workingDir, "audio")
-	err = os.MkdirAll(tempDir, os.ModePerm)
+	imageUrl, err := model.GenerateImage(resp.ImagePrompt)
 	if err != nil {
-		fmt.Println("Error creating temporary directory:", err)
-		return "", ""
+		log.Printf("Failed to generate image: %v", err)
+		return err
 	}
-	// 生成唯一的文件名
-	fileName := uuid.New().String() + ".mp3"
-	// 拼接文件的完整路径
-	filePath := filepath.Join(tempDir, fileName)
-	return fileName, filePath
+	resp.ImageUrl = imageUrl
+	return nil
 }

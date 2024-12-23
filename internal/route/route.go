@@ -3,7 +3,9 @@ package route
 import (
 	"encoding/json"
 	"flutterdreams/internal/service"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +22,7 @@ func InitRouter() *httprouter.Router {
 	// 设置 GET 路由用于心跳检查
 	router.GET("/health", HealthCheck)
 
-	//获取音频文件
+	// 获取音频文件
 	router.GET("/getAudio", GetAudio)
 	return router
 }
@@ -33,7 +35,8 @@ func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 解析 JSON 请求体
 	err := json.NewDecoder(r.Body).Decode(&storyReq)
 	if err != nil {
-		http.Error(wr, "Invalid request body", http.StatusBadRequest)
+		// 这里不再调用 http.Error 直接返回，改为返回错误信息
+		logError(wr, "Invalid request body", err)
 		return
 	}
 
@@ -43,24 +46,26 @@ func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 使用 StoryService 处理故事请求并生成故事
 	err = storyService.ProcessStoryRequest(&storyReq, &storyResp)
 	if err != nil {
-		http.Error(wr, "Failed to process story request: "+err.Error(), http.StatusInternalServerError) // 内部服务器错误
+		logError(wr, "Failed to process story request", err)
 		return
 	}
+
 	wr.Header().Set("Content-Type", "application/json")
 	wr.WriteHeader(http.StatusOK) // 设置 HTTP 状态码为 200 OK
 
 	response := map[string]interface{}{
 		"status":       "success",
 		"message":      "Story request received successfully",
-		"story":        storyResp.StoryContent, // 返回故事内容
-		"image_prompt": storyResp.ImagePrompt,  // 如果有图片提示
-		"audio_url":    storyResp.AudioUrl,     // 如果有音频内容
+		"story":        storyResp.StoryContent,
+		"image_prompt": storyResp.ImagePrompt,
+		"audio_url":    storyResp.AudioUrl,
+		"image_url":    strings.ReplaceAll(storyResp.ImageUrl, "\n", ""),
 	}
 
 	// 将响应转换为 JSON 格式并返回
 	err = json.NewEncoder(wr).Encode(response)
 	if err != nil {
-		http.Error(wr, "Error encoding response: "+err.Error(), http.StatusInternalServerError) // 返回编码错误
+		logError(wr, "Error encoding response", err)
 	}
 }
 
@@ -76,7 +81,7 @@ func GetAudio(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 获取请求中的文件名参数
 	fileName := r.URL.Query().Get("filename")
 	if fileName == "" {
-		http.Error(wr, "Missing filename parameter", http.StatusBadRequest)
+		logError(wr, "Missing filename parameter", fmt.Errorf("filename is required"))
 		return
 	}
 
@@ -85,7 +90,7 @@ func GetAudio(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// 检查文件是否存在
 	if _, err := os.Stat(audioFilePath); os.IsNotExist(err) {
-		http.Error(wr, "File not found", http.StatusNotFound)
+		logError(wr, "File not found", err)
 		return
 	}
 
@@ -95,7 +100,7 @@ func GetAudio(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// 设置响应头以指定音频文件下载
 	wr.Header().Set("Content-Disposition", "inline; filename=\""+fileName+"\"")
 
-	// 读取并返回文件内容
+	// 直接调用 ServeFile 不需要错误捕获，因为它直接写入响应流
 	http.ServeFile(wr, r, audioFilePath)
 }
 
@@ -107,4 +112,10 @@ func getAudioFilePath(fileName string) string {
 		fileName += ".mp3" // 默认添加 .mp3 后缀
 	}
 	return filepath.Join("audio", fileName)
+}
+
+// 记录日志并返回错误信息
+func logError(wr http.ResponseWriter, message string, err error) {
+	log.Printf("%s: %v", message, err)
+	http.Error(wr, fmt.Sprintf("%s: %v", message, err), http.StatusInternalServerError)
 }

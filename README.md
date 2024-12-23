@@ -1,55 +1,35 @@
-# Flutter Dreams
+# 简介
+为孩子们制作魔法故事
+每个孩子都应该有一个故事来点燃他们的好奇心，点燃他们的梦想，带他们踏上一段奇妙的旅程。有了Flutter Dreams，为您的孩子创造激动人心的故事从未如此简单！为了每一位家长，为了每一位教育者
+找一个完美的睡前故事！或者是一个故事来点亮你的教室！
+该项目是一个基于大语言模型的儿童故事生成器，用户可自由指定内容，如故事主旨、音频角色、故事类型、图片类型、儿童年龄段等，生成一个简短的故事及音频供用户使用，不限于娱乐，教育。
+# webUI
+![img.png](assets/img.png)
+## 1. 主页面（一个表单）
+- 故事关于内容（用户主观输入）
+- 音频角色选择（有道角色列表）
+- 故事类型
+- 图片类型
+- 儿童年龄段
+## 2. 结果页面
+- 图片
+- 文本
+- 音频
+# 服务端
+  github：https://github.com/yilake857/ai-story-generation/
+  ## route
+### 1. /health
+   心跳请求，看看服务器挂没有？
+### 2. /getAudio
+   请求音频资源，因为请求的TTS模型没有暂挂url的能力
+### 3. /story
+   返回 图片url，文本，音频
+![img_1.png](assets/img_1.png)
+1. 大语言服务（豆包）
+2. TTS（网易有道）
+3. 图片生成服务（阿里通义万相）
 
-## 基本效果：用户给定几个词或与之相关性的话生成一个故事或者歌曲
-
-## 添加效果：
-- 输入
-    - 文本(关于故事方面...Write me a story about...)
-    - 选择项
-        - 音频角色(audio)
-        - 故事类型
-        - 图片风格
-        - 儿童年龄段
-- 输出
-    - 图片
-    - 音频
-    - 文字 
-
-## 定位：
-1. 故事 儿童 输入几个词作为睡前故事或者学习资料,应用于睡前故事或者课堂小故事，可结合一个学习机终端
-2. 生成歌曲播放 --通用大模型无法实现,可以找找调用api的模型实现 
-
-
-框架结构:
-![](assets/20241129_110614_AI_.png)
-
-# 注意的问题
-- 免费
-- 国内访问限制
-
-# 通用大模型
-- chatgpt
-- 豆包
-
-# TTS
-- 网易有道https://ai.youdao.com/product-tts.s
-
-# image AIGC
-- 可话https://www.canva.com/ja_jp/ai-image-generator/
-- https://www.fotor.com/cn/pricing/
-
-# music AIGC
-- https://suno.com/ api:https://github.com/gcui-art/suno-api 
-- 
-
-参考：
-- [https://easy-peasy.ai/zh/templates/ai-story-generator]()
-
-- 做儿童向的aigc:https://storybee.app/
-
-难点：
-- 各类api的糅合
-- 通用模型的提示词需要尽量完善
-
-# api调用探究
-- 豆包 大语言模型
+## 后续优化：
+能不能介入openAI的模型，效果远优于豆包等。。。
+# 前端展示
+TODO

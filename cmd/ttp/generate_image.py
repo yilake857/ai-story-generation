@@ -6,7 +6,7 @@ import dashscope
 import os
 import sys
 
-dashscope.api_key = 'sk-07fd2c458c5e4ce2b95368e102ce7c87'
+dashscope.api_key = 'your-aip-key'
 
 
 def simple_call(prompt):

@@ -63,7 +63,7 @@ func (s *StoryService) GenerateStory(req *StoryRequest, resp *StoryResponse) err
 
 	// 生成故事内容的提示词
 	storyPrompt := fmt.Sprintf(
-		"根据以下内容生成一个有趣的儿童故事,回复文字的UTF-8编码长度不能超过2000且文字和符号总共不能超过600!\n故事的主题：%s\n故事的类型：%s\n儿童的年龄段：%s\n",
+		"根据以下内容生成一个有趣的儿童故事,不要有不相关的内容只回复故事,回复文字的UTF-8编码长度不能超过2000且文字和符号总共不能超过600!\n故事的主题：%s\n故事的类型：%s\n儿童的年龄段：%s\n",
 		req.StoryContent,
 		req.StoryType,
 		req.ChildAgeGroup,

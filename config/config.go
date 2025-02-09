@@ -20,10 +20,16 @@ type YoudaoTTSConfig struct {
 	AppKey    string `yaml:"app_key"`
 	AppSecret string `yaml:"app_secret"`
 }
+
+type DeepseekConfig struct {
+	Api string `yaml:"api"`
+}
+
 type Config struct {
 	Server       ServerConfig    `yaml:"server"`
 	DoubaoConfig DoubaoConfig    `yaml:"doubao"`
 	YoudaoTTS    YoudaoTTSConfig `yaml:"youdaoTTS"`
+	Deepseek     DeepseekConfig  `yaml:"youdaoTTS"`
 }
 
 var (

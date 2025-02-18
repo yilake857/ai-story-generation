@@ -29,7 +29,7 @@ type Config struct {
 	Server       ServerConfig    `yaml:"server"`
 	DoubaoConfig DoubaoConfig    `yaml:"doubao"`
 	YoudaoTTS    YoudaoTTSConfig `yaml:"youdaoTTS"`
-	Deepseek     DeepseekConfig  `yaml:"youdaoTTS"`
+	Deepseek     DeepseekConfig  `yaml:"deepseek"`
 }
 
 var (

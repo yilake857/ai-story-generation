@@ -56,6 +56,7 @@ func CreateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	response := map[string]interface{}{
 		"status":       "success",
 		"message":      "Story request received successfully",
+		"title":        storyResp.StoryTitle,
 		"story":        storyResp.StoryContent,
 		"image_prompt": storyResp.ImagePrompt,
 		"audio_url":    storyResp.AudioUrl,

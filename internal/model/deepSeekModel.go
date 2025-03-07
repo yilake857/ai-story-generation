@@ -77,7 +77,7 @@ func ChatByDeepSeek(systemContent string, userContent string) (string, error) {
 	}
 
 	// Print the full API response (for debugging purposes)
-	fmt.Println("API Response:", string(body))
+	// fmt.Println("API Response:", string(body))
 
 	// Check for API errors in the response
 	if resp.StatusCode != 200 {

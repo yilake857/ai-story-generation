@@ -134,6 +134,7 @@ type StoryGenerateRequest struct {
 type StoryGenerateResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
+	Story   string `json:"story"`
 }
 
 func GenerateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -151,12 +152,12 @@ func GenerateStory(wr http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	}
 
 	// 调用 plan_module 生成故事计划
-	story_generation.GenerateStory(req.Premise)
-
+	story := story_generation.GenerateStory(req.Premise)
 	// 构造响应
 	response := StoryGenerateResponse{
 		Status:  "success",
-		Message: "Story plan generated successfully",
+		Message: "Story generated successfully",
+		Story:   story,
 	}
 
 	// 设置响应头

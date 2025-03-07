@@ -85,8 +85,13 @@ func generateCharactersInfos(premise string, setting string) ([]string, []string
 	// 拼接premise和setting作为前置提醒
 	basePrompt := "故事前提: " + premise + "\n\n" + "故事背景: " + setting + "\n\n"
 
-	charactersPrompt := basePrompt + "请生成" + strconv.Itoa(MAX_CHARACTERS) + "个主要角色，每个角色按照1. 2. 3.的格式列出，如 1. 角色名：特点、背景、对故事的影响。每个角色需要有中文名字（不包含标点符号）和独特的特点背景。每个角色的描述不超过" + strconv.Itoa(MAX_CHARACTERS_LENGTH) + "个字。"
-
+	charactersPrompt := basePrompt + "请生成" + strconv.Itoa(MAX_CHARACTERS) + "个主要角色，" +
+		"要求：\n" +
+		"1. 用简体中文\n" +
+		"2. 不要使用特殊字符、星号或markdown格式\n" +
+		"3. 避免使用括号、方括号或任何可能影响文本转语音的符号\n" +
+		"4. 每个角色按照1. 2. 3.的格式列出，如 1. 角色名：特点、背景、对故事的影响。\n" +
+		"5. 每个角色需要有中文名字（不包含标点符号）和独特的特点背景。\n"
 	var characterNames []string
 	var characterDetails []string
 
@@ -112,6 +117,9 @@ func generateCharactersInfos(premise string, setting string) ([]string, []string
 
 	if len(characterDetails) == 0 {
 		return nil, nil, fmt.Errorf("未能生成有效的角色信息")
+	}
+	if len(characterDetails) > MAX_CHARACTERS {
+		characterDetails = characterDetails[:MAX_CHARACTERS]
 	}
 	return characterNames, characterDetails, nil
 }
@@ -217,7 +225,16 @@ func generateOutline(inferAttributesString string) (string, []string, error) {
 
 	for i := 0; i < MAX_ATTEMPTS; i++ {
 		// 生成故事大纲，明确限制不生成不当内容
-		outlinePrompt := fmt.Sprintf("%s\n\n请生成一个完整的第三人称的故事大纲，分为"+strconv.Itoa(MAX_OUTLINE_SECTIONS)+"个主要部分，每个部分之间需要有伏笔响应且有逻辑关系并言简意赅。请确保内容适合所有年龄段，不包含任何不当或敏感的主题。示例：1. 内容1，2. 内容2。",
+		outlinePrompt := fmt.Sprintf("%s\n\n请生成一个完整的第三人称的故事大纲，分为"+strconv.Itoa(MAX_OUTLINE_SECTIONS)+"个主要部分，"+
+			"要求："+
+			"1. 用简体中文"+
+			"2. 不要使用特殊字符、星号或markdown格式"+
+			"3. 避免使用括号、方括号或任何可能影响文本转语音的符号"+
+			"4. 请确保内容适合所有年龄段，不包含任何不当或敏感的主题"+
+			"5. 每个部分之间需要有伏笔响应且有逻辑关系并言简意赅"+
+			"输出示例："+
+			"1. 大纲1 "+
+			"2. 大纲2 ",
 			inferAttributesString)
 
 		outlineSectionsRaw, err = common.ChatWithModel(outlinePrompt)
@@ -247,21 +264,38 @@ func parseOutlineSections(outlineSectionsRaw string) []string {
 	var sections []string
 	lines := strings.Split(outlineSectionsRaw, "\n")
 
+	// 用于存储当前处理的大纲标题
+	var currentOutline string
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
+
 		// 匹配以下格式：
 		// 1. 内容
 		// 第1部分:内容
 		// 第一部分：内容
 		// （第1部分：内容）
 		if match, _ := regexp.MatchString(`^(\d+\.|第[一二三四五六七八九十\d]+部分[：:])`, line); match {
+			// 如果已经有当前大纲，先保存它
+			if currentOutline != "" {
+				sections = append(sections, currentOutline)
+			}
+
 			// 移除序号和括号，只保留内容
 			content := regexp.MustCompile(`^(\d+\.|第[一二三四五六七八九十\d]+部分[：:]|\(|\))`).ReplaceAllString(line, "")
-			content = strings.TrimSpace(content)
-			if content != "" {
-				sections = append(sections, content)
-			}
+			currentOutline = strings.TrimSpace(content)
+		} else if currentOutline != "" && line != "" {
+			// 如果这一行不是大纲标题，且不是空行，那么它可能是详细内容的开始
+			// 我们只保留大纲标题，不保留详细内容
+			// 将当前大纲添加到结果中，然后重置当前大纲
+			sections = append(sections, currentOutline)
+			currentOutline = ""
 		}
+	}
+
+	// 处理最后一个大纲
+	if currentOutline != "" {
+		sections = append(sections, currentOutline)
 	}
 
 	return sections
@@ -269,13 +303,24 @@ func parseOutlineSections(outlineSectionsRaw string) []string {
 
 // 新增的 generateSetting 函数
 func generateSetting(premise string) (string, error) {
-	settingPrompt := "故事的前提是: " + premise + "\n\n描述一下故事的背景,言简意赅对故事发展有指导意义且字数在" + strconv.Itoa(MAX_SETTING_LENGTH) + "字左右.\n\n这个故事发生在"
+	settingPrompt := "故事的前提是: " + premise + "\n\n描述一下故事的背景\n\n" +
+		"要求：\n" +
+		"1. 用简体中文\n" +
+		"2. 不要使用特殊字符、星号或markdown格式\n" +
+		"3. 背景要有趣且富有想象力\n" +
+		"4. 使用简单明了的语言\n" +
+		"5. 避免使用括号、方括号或任何可能影响文本转语音的符号\n" +
+		"对故事发展有指导意义" + "\n\n这个故事发生在"
 	var setting string
 	var err error
 
 	for attempts := 0; attempts < MAX_ATTEMPTS; attempts++ {
 		setting, err = common.ChatWithModel(settingPrompt)
 		if err == nil && setting != "" {
+			//切割setting，只保留前100个字符
+			if len(setting) > MAX_SETTING_LENGTH {
+				setting = setting[:MAX_SETTING_LENGTH]
+			}
 			return removeAsterisks(setting), nil
 		}
 	}
